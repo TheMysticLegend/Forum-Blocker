@@ -1,0 +1,1 @@
+A simple extension to block annoying Reddit and Quora posts! Open Source!

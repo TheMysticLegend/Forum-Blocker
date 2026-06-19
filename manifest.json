@@ -1,0 +1,21 @@
+{
+  "name": "Forum Blocker",
+  "description": "Toggle option to disable/enable forums in google search results.",
+  "version": "1.0",
+  "manifest_version": 3,
+  "permissions": ["storage"],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.google.com/search*",
+        "https://www.google.co.in/search*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "ui.html",
+    "default_icon": "icon.png"
+  }
+}
