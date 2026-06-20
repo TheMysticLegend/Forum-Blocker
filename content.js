@@ -1,30 +1,93 @@
-const STORAGE_KEY = 'hide_forums';
-const blockedDomains = ['reddit.com', 'quora.com'];
+const LEGACY_STORAGE_KEY = 'hide_forums';
+const STORAGE_KEYS = ['hide_reddit', 'hide_quora', LEGACY_STORAGE_KEY];
+const blockedDomains = {
+  hide_reddit: 'reddit.com',
+  hide_quora: 'quora.com',
+};
 const HIDDEN_ATTR = 'data-forum-blocker-hidden';
-let hideForumsEnabled = true;
+let hideSettings = {
+  hide_reddit: true,
+  hide_quora: true,
+};
 
-function getTargetUrl(href) {
+function isAllSearchSection() {
+  const url = new URL(location.href);
+
+  if (url.pathname !== '/search') {
+    return false;
+  }
+
+  // Google uses these params for non-All result sections, including Images.
+  if (url.searchParams.has('tbm') || url.searchParams.has('udm')) {
+    return false;
+  }
+
+  return true;
+}
+
+function getHostname(value) {
   try {
-    const url = new URL(href, location.href);
-    if (url.hostname.includes('google.')) {
-      return url.searchParams.get('q') || url.searchParams.get('url') || href;
+    const url = new URL(value, location.href);
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+      return '';
     }
-    return href;
+
+    return url.hostname.toLowerCase().replace(/^www\./, '');
   } catch {
-    return href;
+    return '';
   }
 }
 
-function matchesBlockedDomain(url) {
-  return blockedDomains.some((domain) => url.toLowerCase().includes(domain));
+function getTargetUrls(href) {
+  try {
+    const url = new URL(href, location.href);
+    const hostname = url.hostname.toLowerCase();
+
+    if (!hostname.includes('google.')) {
+      return [href];
+    }
+
+    return ['url', 'q', 'u', 'imgurl', 'imgrefurl']
+      .map((param) => url.searchParams.get(param))
+      .filter((value) => value && getHostname(value));
+  } catch {
+    return [];
+  }
+}
+
+function getEnabledDomains() {
+  return Object.entries(blockedDomains)
+    .filter(([key]) => hideSettings[key])
+    .map(([, domain]) => domain);
+}
+
+function matchesBlockedDomain(href) {
+  const enabledDomains = getEnabledDomains();
+
+  if (enabledDomains.length === 0) {
+    return false;
+  }
+
+  return getTargetUrls(href).some((targetUrl) => {
+    const hostname = getHostname(targetUrl);
+
+    return enabledDomains.some(
+      (domain) => hostname === domain || hostname.endsWith(`.${domain}`)
+    );
+  });
 }
 
 function hideForumResults() {
+  showForumResults();
+
+  if (!isAllSearchSection()) {
+    return;
+  }
+
   const resultLinks = document.querySelectorAll('a[href]');
 
   for (const link of resultLinks) {
-    const targetUrl = getTargetUrl(link.href || '');
-    if (!matchesBlockedDomain(targetUrl)) {
+    if (!matchesBlockedDomain(link.href || '')) {
       continue;
     }
 
@@ -49,32 +112,41 @@ function showForumResults() {
   }
 }
 
-function applySetting(enabled) {
-  hideForumsEnabled = enabled;
+function getSettingsFromStorage(result) {
+  const legacyEnabled = result[LEGACY_STORAGE_KEY] !== false;
 
-  if (enabled) {
-    hideForumResults();
-  } else {
-    showForumResults();
-  }
+  return {
+    hide_reddit: result.hide_reddit ?? legacyEnabled,
+    hide_quora: result.hide_quora ?? legacyEnabled,
+  };
 }
 
-chrome.storage.sync.get([STORAGE_KEY], (result) => {
-  applySetting(result[STORAGE_KEY] !== false);
+function applySettings(settings) {
+  hideSettings = settings;
+  hideForumResults();
+}
+
+chrome.storage.sync.get(STORAGE_KEYS, (result) => {
+  applySettings(getSettingsFromStorage(result));
 });
 
 chrome.storage.onChanged.addListener((changes, areaName) => {
-  if (areaName !== 'sync' || !changes[STORAGE_KEY]) {
+  if (areaName !== 'sync') {
     return;
   }
 
-  applySetting(changes[STORAGE_KEY].newValue !== false);
+  const changedKeys = Object.keys(changes);
+  if (!changedKeys.some((key) => STORAGE_KEYS.includes(key))) {
+    return;
+  }
+
+  chrome.storage.sync.get(STORAGE_KEYS, (result) => {
+    applySettings(getSettingsFromStorage(result));
+  });
 });
 
 const observer = new MutationObserver(() => {
-  if (hideForumsEnabled) {
-    hideForumResults();
-  }
+  hideForumResults();
 });
 
 observer.observe(document.documentElement, {
