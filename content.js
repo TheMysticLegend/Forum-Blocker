@@ -85,6 +85,7 @@ function hideForumResults() {
   }
 
   const resultLinks = document.querySelectorAll('a[href]');
+  const hiddenBlocks = new Set();
 
   for (const link of resultLinks) {
     if (!matchesBlockedDomain(link.href || '')) {
@@ -97,7 +98,8 @@ function hideForumResults() {
       link.closest('div[data-snc]') ||
       link.parentElement;
 
-    if (resultBlock) {
+    if (resultBlock && !hiddenBlocks.has(resultBlock)) {
+      hiddenBlocks.add(resultBlock);
       resultBlock.style.display = 'none';
       resultBlock.setAttribute(HIDDEN_ATTR, 'true');
     }
