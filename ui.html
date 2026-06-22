@@ -67,9 +67,16 @@
         --glass-backdrop: url("popup_bg.png");
         --glass-scrim: linear-gradient(rgba(8, 12, 24, 0.2), rgba(8, 12, 24, 0.28));
         --glass-surface: rgba(255, 255, 255, 0.045);
-        --glass-panel: rgba(255, 255, 255, 0.14);
+        --glass-panel: rgba(255, 255, 255, 0.105);
         --glass-border: rgba(255, 255, 255, 0.42);
         --glass-highlight: rgba(255, 255, 255, 0.075);
+        --glass-edge-light: rgba(255, 255, 255, 0.34);
+        --glass-inner-shadow: rgba(0, 0, 0, 0.18);
+        --glass-depth-shadow: 0 14px 32px rgba(0, 0, 0, 0.28);
+        --glass-reflection-x: 50%;
+        --glass-reflection-y: 0%;
+        --glass-reflection-opacity: 0.2;
+        --glass-noise-opacity: 0.035;
         --base-bg: rgba(8, 12, 24, 0.24);
         --popup-bg: var(--glass-surface);
         --popup-border: var(--glass-border);
@@ -100,6 +107,81 @@
         overflow: hidden;
         padding: 14px;
         transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+      }
+
+      body.theme-glass .glass-surface {
+        background: var(--popup-bg);
+        border-color: var(--popup-border);
+        box-shadow:
+          inset 0 1px 0 var(--glass-edge-light),
+          inset 0 -1px 0 rgba(255, 255, 255, 0.08),
+          inset 0 0 22px rgba(255, 255, 255, 0.025),
+          var(--glass-depth-shadow);
+        isolation: isolate;
+        overflow: hidden;
+        position: relative;
+        transition:
+          background 0.24s cubic-bezier(0.2, 0.8, 0.2, 1),
+          border-color 0.24s cubic-bezier(0.2, 0.8, 0.2, 1),
+          box-shadow 0.24s cubic-bezier(0.2, 0.8, 0.2, 1),
+          transform 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
+      }
+
+      body.theme-glass .glass-surface > * {
+        position: relative;
+        z-index: 1;
+      }
+
+      body.theme-glass .glass-reflective::before,
+      body.theme-glass .glass-reflective::after {
+        border-radius: inherit;
+        content: "";
+        inset: 0;
+        pointer-events: none;
+        position: absolute;
+        z-index: 0;
+      }
+
+      body.theme-glass .glass-reflective::before {
+        background:
+          radial-gradient(
+            circle at var(--glass-reflection-x) var(--glass-reflection-y),
+            rgba(255, 255, 255, 0.62),
+            rgba(255, 255, 255, 0.16) 20%,
+            rgba(255, 255, 255, 0.04) 40%,
+            transparent 62%
+          );
+        mix-blend-mode: screen;
+        opacity: var(--glass-reflection-opacity);
+        transition: opacity 0.24s ease;
+      }
+
+      body.theme-glass .glass-reflective::after {
+        animation: glassNoiseDrift 7s steps(6) infinite;
+        background-image:
+          radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.5) 0 1px, transparent 1px),
+          radial-gradient(circle at 70% 60%, rgba(255, 255, 255, 0.28) 0 1px, transparent 1px),
+          linear-gradient(115deg, transparent, rgba(255, 255, 255, 0.04), transparent);
+        background-size: 19px 19px, 23px 23px, 100% 100%;
+        opacity: var(--glass-noise-opacity);
+      }
+
+      body.theme-glass .glass-primary {
+        --glass-reflection-opacity: 0.18;
+      }
+
+      body.theme-glass .glass-secondary {
+        --glass-reflection-opacity: 0.075;
+      }
+
+      body.theme-glass .glass-interactive:hover {
+        --glass-reflection-opacity: 0.13;
+        border-color: rgba(255, 255, 255, 0.58);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.42),
+          inset 0 -1px 0 rgba(255, 255, 255, 0.12),
+          0 10px 22px rgba(0, 0, 0, 0.2);
+        transform: translateY(-1px) scale(1.01);
       }
 
       body.theme-glass .popup {
@@ -134,8 +216,9 @@
       body.theme-glass .theme-select {
         backdrop-filter: blur(22px) saturate(1.55);
         -webkit-backdrop-filter: blur(22px) saturate(1.55);
+        background-color: var(--row-bg);
         background-image:
-          linear-gradient(135deg, rgba(255, 255, 255, 0.13), rgba(255, 255, 255, 0.02));
+          linear-gradient(135deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.02));
         box-shadow:
           inset 0 1px 0 rgba(255, 255, 255, 0.32),
           0 7px 16px rgba(0, 0, 0, 0.14);
@@ -149,12 +232,13 @@
       body.theme-glass .row:hover,
       body.theme-glass .theme-select:hover {
         border-color: rgba(255, 255, 255, 0.58);
+        background-color: var(--row-bg);
         background-image:
-          linear-gradient(135deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.04));
+          linear-gradient(135deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.04));
         box-shadow:
           inset 0 1px 0 rgba(255, 255, 255, 0.4),
           0 10px 22px rgba(0, 0, 0, 0.2);
-        transform: translateY(-1px);
+        transform: translateY(-1px) scale(1.01);
       }
 
       body.theme-glass .row {
@@ -304,13 +388,67 @@
       .switch input:checked + .slider::before {
         transform: translateX(20px);
       }
+
+      @keyframes glassNoiseDrift {
+        from {
+          background-position: 0 0, 0 0, 0 0;
+        }
+
+        to {
+          background-position: 19px 23px, -23px 19px, 0 0;
+        }
+      }
+
+      @keyframes glassSettle {
+        from {
+          opacity: 0;
+          transform: translateY(4px) scale(0.985);
+        }
+
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+
+      body.theme-glass .popup {
+        animation: glassSettle 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
+      }
+
+      @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+        body.theme-glass {
+          --glass-surface: rgba(26, 31, 48, 0.78);
+          --glass-panel: rgba(46, 53, 75, 0.82);
+          --glass-reflection-opacity: 0.04;
+          --glass-noise-opacity: 0.015;
+        }
+
+        body.theme-glass .glass-reflective::before {
+          opacity: 0.04;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        body.theme-glass .popup,
+        body.theme-glass .glass-reflective::after {
+          animation: none;
+        }
+
+        body.theme-glass .glass-surface,
+        body.theme-glass .row,
+        body.theme-glass .theme-select,
+        .slider,
+        .slider::before {
+          transition-duration: 0.01ms;
+        }
+      }
     </style>
   </head>
   <body>
-    <main class="popup">
+    <main class="popup glass-surface glass-reflective glass-primary">
       <div class="theme-row">
         <label class="theme-label" for="theme-select">Theme</label>
-        <select class="theme-select" id="theme-select">
+        <select class="theme-select glass-surface glass-interactive" id="theme-select">
           <option value="system">System Theme</option>
           <option value="light">Light</option>
           <option value="dark">Dark</option>
@@ -318,7 +456,7 @@
         </select>
       </div>
 
-      <div class="row">
+      <div class="row glass-surface glass-interactive glass-reflective glass-secondary">
         <div class="site">
           <img class="site-icon" id="reddit-icon" src="reddit.png" alt="" />
           <div class="label">Reddit</div>
@@ -329,7 +467,7 @@
         </label>
       </div>
 
-      <div class="row">
+      <div class="row glass-surface glass-interactive glass-reflective glass-secondary">
         <div class="site">
           <img class="site-icon" id="quora-icon" src="quora.png" alt="" />
           <div class="label">Quora</div>

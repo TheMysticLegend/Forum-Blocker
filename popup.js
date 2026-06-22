@@ -85,3 +85,68 @@ systemThemeQuery.addEventListener('change', () => {
     applyTheme('system');
   }
 });
+
+const finePointerQuery = window.matchMedia('(pointer: fine)');
+
+if (finePointerQuery.matches) {
+  const reflectionState = {
+    frameId: 0,
+    bounds: null,
+    targetX: 50,
+    targetY: 0,
+    renderedX: 50,
+    renderedY: 0,
+  };
+
+  function updateReflectionTarget(event) {
+    if (!document.body.classList.contains('theme-glass')) {
+      return;
+    }
+
+    if (!reflectionState.bounds) {
+      reflectionState.bounds = document.body.getBoundingClientRect();
+    }
+
+    const { left, top, width, height } = reflectionState.bounds;
+    reflectionState.targetX = ((event.clientX - left) / width) * 100;
+    reflectionState.targetY = ((event.clientY - top) / height) * 100;
+
+    if (!reflectionState.frameId) {
+      reflectionState.frameId = requestAnimationFrame(renderReflection);
+    }
+  }
+
+  function renderReflection() {
+    const ease = 0.12;
+    const deltaX = reflectionState.targetX - reflectionState.renderedX;
+    const deltaY = reflectionState.targetY - reflectionState.renderedY;
+
+    reflectionState.renderedX += deltaX * ease;
+    reflectionState.renderedY += deltaY * ease;
+
+    document.body.style.setProperty(
+      '--glass-reflection-x',
+      `${reflectionState.renderedX.toFixed(2)}%`
+    );
+    document.body.style.setProperty(
+      '--glass-reflection-y',
+      `${reflectionState.renderedY.toFixed(2)}%`
+    );
+
+    if (Math.abs(deltaX) > 0.05 || Math.abs(deltaY) > 0.05) {
+      reflectionState.frameId = requestAnimationFrame(renderReflection);
+    } else {
+      reflectionState.frameId = 0;
+    }
+  }
+
+  document.addEventListener('pointerenter', () => {
+    reflectionState.bounds = document.body.getBoundingClientRect();
+  });
+
+  document.addEventListener('pointermove', updateReflectionTarget);
+
+  window.addEventListener('resize', () => {
+    reflectionState.bounds = null;
+  });
+}
