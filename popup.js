@@ -16,6 +16,8 @@ const themeSelect = document.getElementById('theme-select');
 const redditIcon = document.getElementById('reddit-icon');
 const quoraIcon = document.getElementById('quora-icon');
 const systemThemeQuery = window.matchMedia('(prefers-color-scheme: dark)');
+const validThemes = ['system', 'light', 'dark', 'glass', 'aero'];
+const themeClasses = ['theme-light', 'theme-dark', 'theme-glass', 'theme-aero'];
 
 const icons = {
   default: {
@@ -38,16 +40,16 @@ function getSettings(result) {
 }
 
 function applyTheme(theme) {
-  const selectedTheme = ['system', 'light', 'dark', 'glass'].includes(theme)
+  const selectedTheme = validThemes.includes(theme)
     ? theme
-    : 'light';
+    : 'system';
   const visibleTheme =
     selectedTheme === 'system'
       ? (systemThemeQuery.matches ? 'dark' : 'light')
       : selectedTheme;
 
-  document.documentElement.classList.remove('theme-light', 'theme-dark', 'theme-glass');
-  document.body.classList.remove('theme-light', 'theme-dark', 'theme-glass');
+  document.documentElement.classList.remove(...themeClasses);
+  document.body.classList.remove(...themeClasses);
   document.documentElement.classList.add(`theme-${visibleTheme}`);
   document.body.classList.add(`theme-${visibleTheme}`);
   themeSelect.value = selectedTheme;
